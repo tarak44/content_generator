@@ -3,9 +3,9 @@ from sklearn.neighbors import NearestNeighbors
 from app import models
 from sqlalchemy.orm import Session
 from app.schemas import AddMemoryResponse, SearchResponse, Match
-from app.routes.memory_store import embedder  # Import your embedder
+from app.routes.memory_store import encode, get_sentence_embedding_dimension  # Updated embedder
 
-DIM = embedder.get_sentence_embedding_dimension()
+DIM = get_sentence_embedding_dimension()
 
 # Global in-memory storage (consider persisting with a real vector DB for production)
 stored_embeddings = []
