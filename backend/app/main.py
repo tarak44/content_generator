@@ -26,7 +26,7 @@ models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(
     title="Content Generator Backend",
-    description="FastAPI backend with LM Studio (local models)",
+    description="FastAPI backend using Groq API (LLM in the cloud)",
     version="1.0.0"
 )
 
@@ -66,4 +66,4 @@ app.include_router(chat_history.router)  # ✅ Chat history router
 
 @app.get("/")
 def read_root():
-    return {"message": "✅ Content Generator Backend with LM Studio is running successfully!"}
+    return {"message": "✅ Content Generator Backend using Groq API is running successfully!"}

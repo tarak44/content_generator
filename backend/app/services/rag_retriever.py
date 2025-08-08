@@ -23,6 +23,6 @@ def retrieve_similar_passages(query: str, k: int = 3):
     results = []
     for dist, idx in zip(distances[0], indices[0]):
         if dist < SIMILARITY_THRESHOLD:
-            results.append(texts[idx])
+            results.append(texts[idx]) 
     
     return results
