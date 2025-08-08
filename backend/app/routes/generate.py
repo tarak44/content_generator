@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from app.services.memory_service import add_embedding, search_embedding
+from app.services.memory_service import add_embedding, search_embedding  # ← This must use sklearn internally
 from app.routes.memory_store import embedder
 from app.routes.memory import BufferMemory
 from app import models, dependencies
@@ -77,7 +77,7 @@ async def generate(
 
     # Search semantic memory
     embedding = embedder.encode(prompt, convert_to_numpy=True)
-    memories = search_embedding(db, embedding)
+    memories = search_embedding(db, embedding)  # <- This now uses sklearn under the hood
 
     semantic_memory_msgs = [{"role": "user", "content": m.text} for m in memories.matches] if memories.matches else []
     buffer_messages = buffer_memory.get_messages(session_id)
