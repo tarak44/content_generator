@@ -14,9 +14,8 @@ from app.routes import (
     integration,
     docs,
     user,
-    chat_history  # ✅ Added chat history router
+    chat_history
 )
-from app.services.memory_service import initialize_index
 from app.database import SessionLocal
 from fastapi.staticfiles import StaticFiles
 import os
@@ -41,7 +40,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     db = SessionLocal()
-    initialize_index(db)
+    # No need to initialize index unless you are persisting it
     db.close()
 
 app.mount(
@@ -50,10 +49,9 @@ app.mount(
     name="static"
 )
 
-# ✅ Active Routers
 app.include_router(users.router)
 app.include_router(templates.router)
-app.include_router(generate.router)  # Handles both content generation and chat
+app.include_router(generate.router)
 app.include_router(analytics.router)
 app.include_router(exports.router)
 app.include_router(prompts.router)
@@ -62,7 +60,7 @@ app.include_router(memory.router)
 app.include_router(integration.router)
 app.include_router(docs.router)
 app.include_router(user.router)
-app.include_router(chat_history.router)  # ✅ Chat history router
+app.include_router(chat_history.router)
 
 @app.get("/")
 def read_root():

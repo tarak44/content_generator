@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.services.memory_service import add_embedding, search_embedding  # ← This must use sklearn internally
-from app.routes.memory_store import embedder
 from app.routes.memory import BufferMemory
 from app import models, dependencies
 from pydantic import BaseModel
@@ -10,6 +9,9 @@ import requests
 import json
 import time
 import os
+from app.routes.memory_store import generate_embedding
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter()
 
@@ -76,7 +78,8 @@ async def generate(
     buffer_memory.add_message(session_id, "user", prompt)
 
     # Search semantic memory
-    embedding = embedder.encode(prompt, convert_to_numpy=True)
+    embedding = generate_embedding(prompt)
+
     memories = search_embedding(db, embedding)  # <- This now uses sklearn under the hood
 
     semantic_memory_msgs = [{"role": "user", "content": m.text} for m in memories.matches] if memories.matches else []
@@ -86,56 +89,51 @@ async def generate(
     messages = semantic_memory_msgs + buffer_messages
 
     content_collector = []
+    start_time = time.time()
 
-    try:
-        start_time = time.time()
+    def stream_and_save():
+        for chunk in stream_content(messages):
+            content_collector.append(chunk)
+            yield chunk
 
-        def stream_and_save():
-            for chunk in stream_content(messages):
-                content_collector.append(chunk)
-                yield chunk
+    def save_data():
+        content = "".join(content_collector)
+        response_time = round(time.time() - start_time, 3)
+        try:
+            prompt_effectiveness = round(len(content) / max(len(prompt), 1), 2)
+        except Exception:
+            prompt_effectiveness = 0.0
+        engagement_score = round(len(content) / 100.0, 2)
 
-        def save_data():
-            content = "".join(content_collector)
-            response_time = round(time.time() - start_time, 3)
-            try:
-                prompt_effectiveness = round(len(content) / max(len(prompt), 1), 2)
-            except Exception:
-                prompt_effectiveness = 0.0
-            engagement_score = round(len(content) / 100.0, 2)
+        db.add(models.GeneratedContent(
+            text=content,
+            model_used=f"{MODEL_NAME} (groq)",
+            owner_id=current_user.id
+        ))
 
-            db.add(models.GeneratedContent(
-                text=content,
-                model_used=f"{MODEL_NAME} (groq)",
-                owner_id=current_user.id
-            ))
+        db.add(models.ChatHistory(
+            session_id=session_id,
+            prompt=prompt,
+            response=content,
+            owner_id=current_user.id
+        ))
 
-            db.add(models.ChatHistory(
-                session_id=session_id,
-                prompt=prompt,
-                response=content,
-                owner_id=current_user.id
-            ))
+        add_embedding(db, embedding, prompt, current_user.id)
 
-            add_embedding(db, embedding, prompt, current_user.id)
+        db.add(models.Analytics(
+            event_type="generate",
+            details=f"Generated content using Groq ({MODEL_NAME})",
+            owner_id=current_user.id,
+            response_time=response_time,
+            prompt_effectiveness=prompt_effectiveness,
+            engagement_score=engagement_score
+        ))
 
-            db.add(models.Analytics(
-                event_type="generate",
-                details=f"Generated content using Groq ({MODEL_NAME})",
-                owner_id=current_user.id,
-                response_time=response_time,
-                prompt_effectiveness=prompt_effectiveness,
-                engagement_score=engagement_score
-            ))
+        db.commit()
 
-            db.commit()
+    background_tasks.add_task(save_data)
 
-        background_tasks.add_task(save_data)
+    # ✅ Store empty string for assistant before content is streamed
+    buffer_memory.add_message(session_id, "assistant", "")
 
-        # ✅ Store empty string for assistant before content is streamed
-        buffer_memory.add_message(session_id, "assistant", "")
-
-        return StreamingResponse(stream_and_save(), media_type="text/plain")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Content generation failed: {e}")
+    return StreamingResponse(stream_and_save(), media_type="text/plain")

@@ -3,7 +3,7 @@ from sklearn.neighbors import NearestNeighbors
 from app import models
 from sqlalchemy.orm import Session
 from app.schemas import AddMemoryResponse, SearchResponse, Match
-from app.routes.memory_store import encode, get_sentence_embedding_dimension  # Updated embedder
+from app.routes.memory_store import generate_embedding, get_sentence_embedding_dimension  # ✅ Updated here
 
 DIM = get_sentence_embedding_dimension()
 
