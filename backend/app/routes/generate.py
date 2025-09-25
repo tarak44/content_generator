@@ -27,7 +27,7 @@ HEADERS = {
 }
 
 # ✅ Use a model you're authorized for
-MODEL_NAME = "llama3-8b-8192"  # Or try "llama-3.1-8b-instant" if you want a newer one
+MODEL_NAME = "llama-3.1-8b-instant"  
 
 buffer_memory = BufferMemory(buffer_size=6)
 

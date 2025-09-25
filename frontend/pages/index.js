@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { SquarePlus, MessageCircleMore, RefreshCcw, PauseCircle } from "lucide-react";
+import { SquarePlus, MessageCircleMore, PauseCircle } from "lucide-react";
+import { motion } from "framer-motion";
 import { starterPrompts } from "../components/starterprompts";
 
 export default function Home() {
@@ -15,22 +16,26 @@ export default function Home() {
   const [currentSession, setCurrentSession] = useState("");
   const inputRef = useRef(null);
   const controllerRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      router.replace("/auth");
-    } else {
+    if (!token) router.replace("/auth");
+    else {
       setLoading(false);
       fetchSessions();
     }
   }, [router.pathname]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const fetchSessions = async () => {
     const token = localStorage.getItem("token");
     try {
       const res = await axios.get("http://127.0.0.1:8000/chat/sessions/", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setSessions(res.data);
     } catch (err) {
@@ -42,7 +47,7 @@ export default function Home() {
     const token = localStorage.getItem("token");
     try {
       const res = await axios.get(`http://127.0.0.1:8000/chat/session/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setMessages(res.data);
       setCurrentSession(sessionId);
@@ -65,7 +70,6 @@ export default function Home() {
 
     const newPrompt = prompt.trim();
     setMessages((prev) => [...prev, { prompt: newPrompt, response: "" }]);
-
     controllerRef.current = new AbortController();
 
     try {
@@ -99,13 +103,12 @@ export default function Home() {
 
       fetchSessions();
     } catch (err) {
-      if (axios.isCancel(err) || err.name === "AbortError") {
-        console.log("Generation paused by user.");
-      } else {
+      if (err.name === "AbortError") console.log("Generation paused by user.");
+      else {
         console.error(err);
         setMessages((prev) => [
           ...prev,
-          { prompt: prompt.trim(), response: "Error generating content. Please try again." }
+          { prompt: prompt.trim(), response: "Error generating content. Please try again." },
         ]);
       }
     } finally {
@@ -135,30 +138,31 @@ export default function Home() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
-        <p className="text-lg font-semibold">Checking authentication...</p>
+        <p className="text-lg font-semibold animate-pulse">Checking authentication...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
       {/* Sidebar */}
-      <div className="w-64 bg-black bg-opacity-40 p-4 space-y-4 rounded-r-3xl shadow-lg">
+      <aside className="w-64 bg-black/30 backdrop-blur-lg p-4 space-y-4 rounded-r-3xl shadow-xl flex flex-col">
         <button
           onClick={handleNewChat}
-          className="w-full flex items-center justify-center gap-2 bg-blue-700 text-white py-3 rounded-full hover:bg-blue-800 transition-all"
+          className="w-full flex items-center justify-center gap-2 bg-blue-700 py-3 rounded-full hover:bg-blue-800 transition-all text-white font-medium shadow-md"
         >
           <SquarePlus size={20} /> New Chat
         </button>
-        <div className="space-y-2 overflow-y-auto max-h-[80vh] pr-1 custom-scrollbar">
+
+        <div className="flex-1 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-blue-600 scrollbar-track-transparent">
           {sessions.map((session) => (
             <button
               key={session.session_id}
               onClick={() => fetchSessionMessages(session.session_id)}
-              className={`w-full flex items-center gap-2 px-4 py-3 rounded-full transition-all ${
+              className={`w-full flex items-center gap-2 px-4 py-3 rounded-2xl transition-all font-medium ${
                 currentSession === session.session_id
-                  ? "bg-blue-600 text-white shadow"
-                  : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
+                  : "bg-gray-900/50 text-gray-200 hover:bg-gray-800/70"
               }`}
             >
               <MessageCircleMore size={18} />
@@ -170,29 +174,24 @@ export default function Home() {
             </button>
           ))}
         </div>
-      </div>
+      </aside>
 
       {/* Main Chat Area */}
-      <div className="flex-1 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white px-4 pb-24 flex flex-col rounded-l-3xl">
-        <div className="flex-grow flex flex-col items-center justify-center max-w-6xl mx-auto w-full">
+      <main className="flex-1 flex flex-col justify-end px-6 py-6 relative">
+        <div className="flex-grow overflow-y-auto mb-4 flex flex-col gap-4 max-w-4xl mx-auto">
           {!messages.length && !inputFocused && (
-            <div className="text-center mb-8">
-              <h1 className="text-6xl font-extrabold mb-2">Content Generator</h1>
-              <div className="h-[1px] w-full bg-white opacity-40 mb-4" />
-              <p className="text-2xl text-gray-300 font-semibold">
-                Start creating awesome content effortlessly.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+            <div className="text-center opacity-80">
+              <h1 className="text-5xl sm:text-6xl font-extrabold mb-4 drop-shadow-lg">Content Generator</h1>
+              <p className="text-xl sm:text-2xl mb-6">Start creating awesome content effortlessly</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {starterPrompts.map((example, idx) => (
                   <button
                     key={idx}
                     onClick={() => {
                       setPrompt(example);
-                      setTimeout(() => {
-                        document.querySelector("form")?.requestSubmit();
-                      }, 0);
+                      setTimeout(() => document.querySelector("form")?.requestSubmit(), 0);
                     }}
-                    className="bg-white/10 hover:bg-white/20 text-white py-3 px-6 rounded-xl text-left shadow transition"
+                    className="bg-white/10 hover:bg-white/20 text-white py-3 px-6 rounded-2xl shadow-md backdrop-blur-sm transition-all font-medium text-left"
                   >
                     {example}
                   </button>
@@ -201,27 +200,38 @@ export default function Home() {
             </div>
           )}
 
-          <div className={`w-full max-w-4xl mb-8 space-y-4 overflow-auto flex flex-col ${messages.length > 0 ? 'bg-black p-6 rounded-3xl shadow-xl' : ''}`}>
+          <div className="flex flex-col gap-4">
             {messages.map((msg, idx) => (
-              <div key={idx} className="space-y-2">
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col gap-2"
+              >
+                {/* User Message */}
                 <div className="flex justify-end">
-                  <div className="bg-blue-600 p-4 rounded-3xl max-w-[75%] shadow-md">
-                    <p className="text-white">{msg.prompt}</p>
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-700 p-4 rounded-3xl max-w-[75%] shadow-lg text-white whitespace-pre-wrap break-words">
+                    {msg.prompt}
                   </div>
                 </div>
+
+                {/* Bot Response */}
                 <div className="flex justify-start">
-                  <div className="bg-gray-800 p-4 rounded-3xl max-w-[75%] shadow-md whitespace-pre-wrap">
-                    <p className="text-white">{msg.response}</p>
+                  <div className="bg-gradient-to-r from-gray-800/90 to-gray-700/80 backdrop-blur-md p-4 rounded-3xl max-w-[75%] shadow-lg text-white whitespace-pre-wrap break-words">
+                    {msg.response}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
+        {/* Input Form */}
         <form
           onSubmit={handleSubmit}
-          className="fixed bottom-4 left-64 right-0 max-w-6xl mx-auto px-4 flex space-x-4 items-center"
+          className="fixed bottom-6 left-64 right-0 max-w-4xl mx-auto flex space-x-4 items-center px-4"
         >
           <input
             ref={inputRef}
@@ -230,7 +240,7 @@ export default function Home() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={generating}
-            className="flex-grow rounded-full p-4 text-gray-900 text-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-600 bg-gray-100"
+            className="flex-grow rounded-full p-4 text-gray-900 text-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/90 backdrop-blur-sm placeholder-gray-400"
             autoComplete="off"
             spellCheck={false}
             onFocus={() => setInputFocused(true)}
@@ -240,7 +250,7 @@ export default function Home() {
             <button
               type="button"
               onClick={handlePause}
-              className="bg-red-600 text-white font-semibold px-6 py-3 rounded-full shadow-md hover:bg-red-700 transition"
+              className="bg-red-600 text-white font-semibold px-6 py-3 rounded-full shadow-lg hover:bg-red-700 transition-all"
             >
               <PauseCircle className="h-6 w-6 mx-auto" />
             </button>
@@ -248,13 +258,13 @@ export default function Home() {
             <button
               type="submit"
               disabled={!prompt.trim()}
-              className="bg-blue-800 text-white font-semibold px-6 py-3 rounded-full shadow-md hover:bg-blue-900 transition disabled:opacity-50"
+              className="bg-blue-800 text-white font-semibold px-6 py-3 rounded-full shadow-lg hover:bg-blue-900 transition-all disabled:opacity-80"
             >
               Generate
             </button>
           )}
         </form>
-      </div>
+      </main>
     </div>
   );
 }

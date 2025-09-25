@@ -1,31 +1,45 @@
-import '@/styles/globals.css';
-import Layout from '@/components/Layout';
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import "@/styles/globals.css";
+import Layout from "@/components/Layout";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
-  const [checkedAuth, setCheckedAuth] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        if (router.pathname !== "/auth") {
+          router.replace("/auth");
+        }
+      }
+      setLoading(false);
+    };
 
-    if (!token && router.pathname !== '/auth') {
-      router.replace('/auth');
-    } else {
-      setCheckedAuth(true);
-    }
+    checkAuth();
   }, [router]);
 
-  // Show loader while checking auth (optional, improves UX)
-  if (!checkedAuth && router.pathname !== '/auth') {
+  // Loading screen (UX friendly)
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-black text-white">
-        <p className="text-lg">Checking authentication...</p>
+        <p className="text-lg animate-pulse">Checking authentication...</p>
       </div>
     );
   }
 
+  // Don't wrap auth page inside Layout
+  if (router.pathname === "/auth") {
+    return <Component {...pageProps} />;
+  }
+
+  // Wrap all other pages with Layout
   return (
     <Layout>
       <Component {...pageProps} />

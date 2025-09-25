@@ -9,13 +9,9 @@ export default function Profile() {
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
-    if (storedEmail) {
-      setEmail(storedEmail);
-    }
+    if (storedEmail) setEmail(storedEmail);
     const storedPic = localStorage.getItem("profilePicUrl");
-    if (storedPic) {
-      setProfilePicUrl(storedPic);
-    }
+    if (storedPic) setProfilePicUrl(storedPic);
   }, []);
 
   const handleUpdateProfile = async () => {
@@ -24,17 +20,15 @@ export default function Profile() {
       const res = await axios.put(
         "http://127.0.0.1:8000/user/update",
         { email, bio },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+
       localStorage.setItem("userEmail", email);
       if (res.data.profile_pic_url) {
         localStorage.setItem("profilePicUrl", res.data.profile_pic_url);
         setProfilePicUrl(res.data.profile_pic_url);
       }
+
       alert("Profile updated successfully!");
     } catch (err) {
       console.error(err);
@@ -43,21 +37,22 @@ export default function Profile() {
   };
 
   const handleUploadPicture = async () => {
-    if (!file) {
-      alert("Please select a file!");
-      return;
-    }
+    if (!file) return alert("Please select a file!");
     try {
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await axios.post("http://127.0.0.1:8000/user/upload-profile-pic", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await axios.post(
+        "http://127.0.0.1:8000/user/upload-profile-pic",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       const url = res.data.profile_pic_url;
       setProfilePicUrl(url);
@@ -70,60 +65,60 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex justify-center items-start pt-16 text-white">
-      <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Profile Settings</h2>
+    <div className="min-h-screen flex justify-center items-start pt-16 bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white">
+      <div className="bg-white/10 backdrop-blur-md shadow-2xl rounded-3xl p-8 w-full max-w-md border border-white/20">
+        <h2 className="text-3xl font-bold mb-6 text-center text-white">Profile Settings</h2>
 
         {profilePicUrl && (
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-6">
             <img
               src={`http://127.0.0.1:8000${profilePicUrl}`}
               alt="Profile"
-              className="w-32 h-32 rounded-full border-4 border-gray-600 object-cover"
+              className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg hover:scale-105 transition-transform"
             />
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Email</label>
+            <label className="block text-sm text-gray-200 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 rounded-xl bg-white/20 text-white border border-white/30 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+              placeholder="Enter your email"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Bio</label>
+            <label className="block text-sm text-gray-200 mb-1">Bio</label>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Tell us about yourself..."
-              className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            ></textarea>
+              className="w-full p-3 rounded-xl bg-white/20 text-white border border-white/30 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition resize-none"
+              rows={4}
+            />
           </div>
 
           <button
             onClick={handleUpdateProfile}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+            className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-purple-600 hover:to-blue-500 shadow-lg transition-all"
           >
             Update Profile
           </button>
 
-          <div className="border-t border-gray-700 pt-4">
-            <label className="block text-sm text-gray-300 mb-2">
-              Upload Profile Picture
-            </label>
+          <div className="border-t border-white/30 pt-4 space-y-3">
+            <label className="block text-sm text-gray-200">Upload Profile Picture</label>
             <input
               type="file"
               onChange={(e) => setFile(e.target.files[0])}
-              className="w-full text-gray-300"
+              className="w-full text-white file:bg-blue-600 file:border-none file:rounded-full file:px-4 file:py-2 file:text-white file:cursor-pointer hover:file:bg-blue-500 transition"
             />
             <button
               onClick={handleUploadPicture}
-              className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition"
+              className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-teal-500 hover:from-teal-500 hover:to-green-500 shadow-lg transition-all"
             >
               Upload Picture
             </button>

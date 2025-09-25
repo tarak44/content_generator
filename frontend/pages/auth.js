@@ -4,18 +4,16 @@ import axios from 'axios';
 function calculatePasswordStrength(password) {
   let score = 0;
   if (!password) return score;
-
   if (password.length >= 8) score += 1;
   if (password.length >= 12) score += 1;
   if (/[A-Z]/.test(password)) score += 1;
   if (/\d/.test(password)) score += 1;
   if (/[\W_]/.test(password)) score += 1;
-
-  return score; // 0-5
+  return score;
 }
 
 export default function AuthPage() {
-  const [mode, setMode] = useState('login'); // 'login' or 'signup'
+  const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -31,35 +29,15 @@ export default function AuthPage() {
   }, [password, mode]);
 
   const getStrengthLabel = () => {
-    switch (passwordStrength) {
-      case 0:
-      case 1:
-      case 2:
-        return 'Weak';
-      case 3:
-      case 4:
-        return 'Medium';
-      case 5:
-        return 'Strong';
-      default:
-        return '';
-    }
+    if (passwordStrength <= 2) return 'Weak';
+    if (passwordStrength <= 4) return 'Medium';
+    return 'Strong';
   };
 
   const getStrengthColor = () => {
-    switch (passwordStrength) {
-      case 0:
-      case 1:
-      case 2:
-        return 'bg-red-500';
-      case 3:
-      case 4:
-        return 'bg-yellow-400';
-      case 5:
-        return 'bg-green-500';
-      default:
-        return 'bg-gray-300';
-    }
+    if (passwordStrength <= 2) return 'from-red-500 to-red-600';
+    if (passwordStrength <= 4) return 'from-yellow-400 to-yellow-500';
+    return 'from-green-400 to-green-500';
   };
 
   const handleSubmit = async (e) => {
@@ -82,22 +60,14 @@ export default function AuthPage() {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
       } else {
-        response = await axios.post(endpoint, {
-          username,
-          password,
-          role: 'Viewer',
-        });
+        response = await axios.post(endpoint, { username, password, role: 'Viewer' });
       }
 
       const token = response.data.access_token || response.data.token;
       if (token) {
         localStorage.setItem('token', token);
-        setMessage(
-          `${mode === 'login' ? 'Logged in' : 'Signed up'} successfully! Redirecting...`
-        );
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1500);
+        setMessage(`${mode === 'login' ? 'Logged in' : 'Signed up'} successfully! Redirecting...`);
+        setTimeout(() => (window.location.href = '/'), 1500);
       } else {
         setMessage('Unexpected response from server.');
       }
@@ -114,51 +84,36 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-purple-900 via-blue-900 to-indigo-900 flex flex-col justify-center items-center p-6">
-      <div className="bg-gray-800 p-10 rounded-lg shadow-lg max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-tr from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl shadow-xl p-10 space-y-6">
         {/* Tabs */}
-        <div className="flex mb-8 border-b border-gray-600">
-          <button
-            onClick={() => {
-              setMode('login');
-              setMessage('');
-              setUsername('');
-              setPassword('');
-            }}
-            className={`flex-1 py-3 text-center font-semibold transition-colors duration-300 ${
-              mode === 'login'
-                ? 'border-b-4 border-indigo-500 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-            disabled={loading}
-          >
-            Login
-          </button>
-          <button
-            onClick={() => {
-              setMode('signup');
-              setMessage('');
-              setUsername('');
-              setPassword('');
-            }}
-            className={`flex-1 py-3 text-center font-semibold transition-colors duration-300 ${
-              mode === 'signup'
-                ? 'border-b-4 border-indigo-500 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-            disabled={loading}
-          >
-            Sign Up
-          </button>
+        <div className="flex mb-6 border-b border-gray-400/40">
+          {['login', 'signup'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setMode(tab);
+                setMessage('');
+                setUsername('');
+                setPassword('');
+              }}
+              className={`flex-1 py-3 text-center font-semibold transition-colors duration-300 ${
+                mode === tab
+                  ? 'border-b-4 border-indigo-400 text-white'
+                  : 'text-gray-300 hover:text-white'
+              }`}
+              disabled={loading}
+            >
+              {tab === 'login' ? 'Login' : 'Sign Up'}
+            </button>
+          ))}
         </div>
 
-        <h1 className="text-3xl font-bold mb-6 text-center text-white">
-          {mode === 'login' ? 'Login' : 'Sign Up'}
-        </h1>
+        <h1 className="text-3xl font-bold text-white text-center">{mode === 'login' ? 'Login' : 'Sign Up'}</h1>
 
         {message && (
           <div
-            className={`mb-6 text-center text-sm font-semibold ${
+            className={`text-center text-sm font-semibold transition-opacity duration-500 ${
               message.toLowerCase().includes('error') ||
               message.toLowerCase().includes('unexpected') ||
               message.toLowerCase().includes('occurred')
@@ -170,32 +125,32 @@ export default function AuthPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <input
             type="text"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-3 rounded-xl bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
             required
             disabled={loading}
           />
+
           <div>
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full p-3 rounded-xl bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               required
               disabled={loading}
             />
-            {/* Password strength meter only on signup */}
             {mode === 'signup' && (
               <div className="mt-2">
-                <div className="w-full bg-gray-600 rounded h-2">
+                <div className="w-full h-2 rounded bg-gray-700 overflow-hidden">
                   <div
-                    className={`h-2 rounded ${getStrengthColor()}`}
+                    className={`h-2 rounded bg-gradient-to-r ${getStrengthColor()} transition-all duration-300`}
                     style={{ width: `${(passwordStrength / 5) * 100}%` }}
                   ></div>
                 </div>
@@ -209,7 +164,7 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md py-3 transition duration-300 disabled:opacity-60"
+            className="w-full flex justify-center items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-3 transition duration-300 disabled:opacity-60"
           >
             {loading && (
               <svg
@@ -225,12 +180,12 @@ export default function AuthPage() {
                   r="10"
                   stroke="currentColor"
                   strokeWidth="4"
-                ></circle>
+                />
                 <path
                   className="opacity-75"
                   fill="currentColor"
                   d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                ></path>
+                />
               </svg>
             )}
             <span>{mode === 'login' ? 'Login' : 'Sign Up'}</span>
